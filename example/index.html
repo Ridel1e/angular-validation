@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body ng-app="myApp">
+    <div ng-controller="MainCtrl as vm">
+        <form action="" name="vm.userForm">
+            <input type="text"
+                   name="login"
+                   ng-model="vm.user.login"
+                   validation rules="vm.rules">
+            <error-messages for="vm.userForm.login" messages="vm.messages"></error-messages>
+            <pre>{{ vm.userForm.login.$error }} {{ vm.userForm.login.$pending }}</pre>
+            <br>
+            <br>
+            <input type="password"
+                   name="password"
+                   ng-model="vm.user.password">
+            <br>
+            <br>
+            <input type="password"
+                   name="confirmPassword"
+                   ng-model="vm.user.confirmPassword"
+                   validation rules="vm.rules"
+                   bind-to="vm.userForm.password">
+            <error-messages for="vm.userForm.confirmPassword" messages="vm.messages"></error-messages>
+            <pre>{{ vm.user }}</pre>
+        </form>
+    </div>
+
+    <script src="../node_modules/angular/angular.min.js"></script>
+    <script src="../dist/bundle.js"></script>
+    <script src="./main.js"></script>
+</body>
+</html>
