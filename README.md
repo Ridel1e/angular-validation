@@ -186,7 +186,7 @@ __JS:__
 ```javascript
  angular
   .module('myApp')
-  .controller('MainCtrl', ['$scope', ''formValidator', function ($scope, formValidator) {
+  .controller('MainCtrl', ['$scope', 'formValidator', function ($scope, formValidator) {
     var vm = this;
 
     // добавляем правило integer для поля age
@@ -217,7 +217,7 @@ __JS:__
      formValidator.setFormValidation(vm.userForm, vm.scheme);
    })
 
-  });
+  }]);
 ```
 
 Теперь мы можем использовать валидацию integer.
