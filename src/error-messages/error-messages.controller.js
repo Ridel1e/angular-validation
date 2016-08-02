@@ -11,8 +11,6 @@
 
   function ErrorMessagesController() {
     var vm = this;
-
-    vm.elementMessages = vm.messages[vm.for.$name];
     vm.validators = [];
 
     Object.keys(vm.for.$validators).forEach(function (validator) {

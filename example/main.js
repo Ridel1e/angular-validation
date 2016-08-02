@@ -13,24 +13,30 @@
 
   angular
     .module('myApp')
-    .controller('MainCtrl', ['validatorService', 'User', function (validatorService, User) {
+    .controller('MainCtrl', ['formValidator', 'User', '$scope', function (formValidator, User, $scope) {
       var vm = this;
 
-      // rules scheme
-      vm.rules = {
-        login: [{
+      // validation scheme
+      vm.scheme = [{
+        fieldName: 'login',
+        rules: [{
           name: "required"
         }, {
           name: "minlength",
-          data: "5"
+          data: 5
         }, {
-          name: 'userExist',
+          name: "userExist",
           async: true
-        }],
-        confirmPassword: [{
-          name: 'passwordConfirm'
         }]
-      };
+      }, {
+        fieldName: 'passwordConfirmation',
+        rules: [{
+          name: 'passwordConfirmed',
+          bindWith: [
+            'password'
+          ]
+        }]
+      }];
 
       // messages scheme
       vm.messages = {
@@ -39,20 +45,30 @@
           minlength: 'login must contains at least 5 symbols',
           userExist: 'user with this login is already exist'
         },
-        confirmPassword: {
-          passwordConfirm: 'please, repeat your password'
+        passwordConfirmation: {
+          passwordConfirmed: 'please, repeat your password'
         }
       };
 
       // we add custom confirmPassword validation
 
-      validatorService
-        .addValidatorFunc('passwordConfirm', function (passwordConfirmation, data, originalPassword) {
+      formValidator
+        .addValidator('passwordConfirmed', function (passwordConfirmation, data, originalPassword) {
           return passwordConfirmation === originalPassword;
         });
-      validatorService
-        .addAsyncValidatorFunc('userExist', function (login) {
+
+      // custom async validator
+
+      formValidator
+        .addAsyncValidator('userExist', function (login) {
           return User.checkUserLogin(login);
+        });
+
+      // set validation to form
+
+      $scope
+        .$applyAsync(function () {
+          formValidator.setFormValidation(vm.userForm, vm.scheme);
         })
 
     }]);

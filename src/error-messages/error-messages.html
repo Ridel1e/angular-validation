@@ -1,6 +1,6 @@
 <div ng-messages="vm.for.$error" ng-show="!vm.for.$pristine">
     <div ng-repeat-start="validator in vm.validators"></div>
 
-    <div ng-message="{{ validator }}">{{ vm.elementMessages[validator] }}</div>
+    <div ng-message="{{ validator }}">{{ vm.messages[validator] }}</div>
     <div ng-repeat-end></div>
 </div>
