@@ -171,11 +171,10 @@ __HTML:__
 </body>
 ```
 
-### validatorService
+### Создание Пользовательских валидаторов
 
-validatorService предназначен для добавления пользовательских валидаторов. 
 
-validatorService имеет методы:
+formValidator имеет методы:
 
 - __addValidator("validatorName", callback)__ - добавление обычного валидатора
 - __addAsyncValidator("validatorName", callback)__ - добавление асихронного валидатора
