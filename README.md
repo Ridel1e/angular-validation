@@ -9,27 +9,34 @@
 1. Правила валидации элементов формы. 
 
 Правила для каждого поля начинаются с создания свойства с именем элемента в html в объекте конфигурации. Свойство является массивом, 
-которое содержит различные правила. Правила - объект, с некотороыми параметрами. Всего параметра может быть 3
+которое содержит различные правила. Правила - объект, с некотороыми параметрами. Всего параметра может быть 4
 - __name__ - имя валидатора 
 - __data__ - вспомогательные данные для валидации (к примеру минимальная или максимальная длина строки)
 - __async__ - параметр, имеющий значение true или false. Применяется для указания, является ли валидатор асинхронным.
+-__bindWith__ - массив имен моделей элементов формы, с которыми связано правило (повторение пароля связано с полем пароль и т.п)
 
 Пример:
 ```javascript
-  {
-    login: [{
-      name: "required"
-    }, {
-      name: "minlength",
-      data: "5"
-    }, {
-      name: 'userExist',
-      async: true
-    }],
-    passwordConfirmation: [{
-      name: 'confirmPassword'
-    }]
-  }
+  [{
+   fieldName: 'login',
+   rules: [{
+     name: "required"
+   }, {
+     name: "minlength",
+     data: 5
+   }, {
+     name: "userExist",
+     async: true
+   }]
+ }, {
+   fieldName: 'passwordConfirmation',
+   rules: [{
+     name: 'passwordConfirmed',
+     bindWith: [
+       'password'
+     ]
+   }]
+ }]
 ```
 
 2. Сообщения ошибок для каждого элемента формы. 
@@ -70,19 +77,26 @@ __JS:__
 ```javascript
  angular
   .module('myApp')
-  .controller('MainCtrl', function () {
+  .controller('MainCtrl',['$scope', 'formValidator' function ($scope, formValidator) {
     var vm = this;
 
-    // rules scheme
-    vm.rules = {
-      login: [{
-        name: "required"
-      }, {
-        name: "minlength",
-        data: "5"
-      }]
-    };
-  });
+    // scheme
+    vm.scheme = [{
+       fieldName: 'login',
+       rules: [{
+         name: "required"
+       }, {
+         name: "minlength",
+         data: 5
+       }]
+     }];
+
+    $scope
+     .$applyAsync(function () {
+       formValidator.setFormValidation(vm.userForm, vm.scheme);
+     })
+
+    }]);
 ```
 
 __HTML:__
@@ -92,8 +106,7 @@ __HTML:__
         <form action="" name="vm.userForm">
             <input type="text"
                    name="login"
-                   ng-model="vm.user.login"
-                   validation rules="vm.rules">
+                   ng-model="vm.user.login">
     <script src="../node_modules/angular/angular.min.js"></script>
     <script src="../dist/bundle.js"></script>
     <script src="./main.js"></script>
@@ -105,7 +118,7 @@ __HTML:__
 для добавления сообщений ошибок валидаций необходимо создать конфигурационный файл для сообщений и добавить в html директиву 
 <error-messages> с двумя параметрами:
 - __for__ модель (в примере выше это будет vm.userForm.login) 
-- __messages__ - конфигрурация сообщений
+- __messages__ - объект из конфигурации сообщений конкретного поля
 
 Пример выше с сообщениями валидации:
 
@@ -113,28 +126,35 @@ __JS:__
 ```javascript
  angular
   .module('myApp')
-  .controller('MainCtrl', function () {
+  .controller('MainCtrl',['$scope', 'formValidator' function ($scope, formValidator) {
     var vm = this;
 
-    // rules scheme
-    vm.rules = {
-      login: [{
-        name: "required"
-      }, {
-        name: "minlength",
-        data: "5"
-      }]
-    };
-  });
-  
-  vm.messages = {
-    login: {
-      required: 'login is required',
-      minlength: 'login must contains at least 5 symbols',
-      userExist: 'user with this login is already exist'
-    }
-  };
+    // scheme
+    vm.scheme = [{
+       fieldName: 'login',
+       rules: [{
+         name: "required"
+       }, {
+         name: "minlength",
+         data: 5
+       }]
+     }];
+
+     vm.messages = {
+         login: {
+           required: 'login is required',
+           minlength: 'login must contains at least 5 symbols',
+           userExist: 'user with this login is already exist'
+         }
+     }
+
+    $scope
+     .$applyAsync(function () {
+       formValidator.setFormValidation(vm.userForm, vm.scheme);
+     })
+    }]);
 ```
+
 
 __HTML:__
 ```html
@@ -143,9 +163,8 @@ __HTML:__
         <form action="" name="vm.userForm">
             <input type="text"
                    name="login"
-                   ng-model="vm.user.login"
-                   validation rules="vm.rules">
-             <error-messages for="vm.userForm.login" messages="vm.messages"></error-messages>
+                   ng-model="vm.user.login">
+             <error-messages for="vm.userForm.login" messages="vm.messages.login"></error-messages>
     <script src="../node_modules/angular/angular.min.js"></script>
     <script src="../dist/bundle.js"></script>
     <script src="./main.js"></script>
@@ -158,8 +177,8 @@ validatorService предназначен для добавления польз
 
 validatorService имеет методы:
 
-- __addValidatorFunc("validatorName", callback)__ - добавление обычного валидатора
-- __addAsyncValidatorFunc("validatorName", callback)__ - добавление асихронного валидатора
+- __addValidator("validatorName", callback)__ - добавление обычного валидатора
+- __addAsyncValidator("validatorName", callback)__ - добавление асихронного валидатора
 
 добавим пользовательский валидатор проверки числа на целостность
 
@@ -167,28 +186,37 @@ __JS:__
 ```javascript
  angular
   .module('myApp')
-  .controller('MainCtrl', ['validatorService', function (validatorService) {
+  .controller('MainCtrl', ['$scope', ''formValidator', function ($scope, formValidator) {
     var vm = this;
 
     // добавляем правило integer для поля age
-    vm.rules = {
-      login: [{
+    vm.scheme = [{
+      fieldName: 'login',
+      rules: [{
         name: "required"
       }, {
         name: "minlength",
-        data: "5"
+        data: 5
       }]
-      age: [{
-        name: "integer"
+    }, {
+      fieldName: 'age',
+      rules: [{
+        name: 'integer'
       }]
-    };
-  };
+    }];
   
   validatorService
-    .addValidatorFunc('integer', function (age) {
+    .addValidator('integer', function (age) {
       var ageRegEx = /^\d+$/
       
       return ageRegEx.test(age);
+    });
+
+  $scope
+   .$applyAsync(function () {
+     formValidator.setFormValidation(vm.userForm, vm.scheme);
+   })
+
   });
 ```
 
@@ -227,30 +255,46 @@ angular
 
  angular
   .module('myApp')
-  .controller('MainCtrl', ['validatorService', 'User', function (validatorService, User) {
+  .controller('MainCtrl', ['$scope', 'validatorService', 'User', function ($scope, formValidator, User) {
     var vm = this;
 
-    // добавляем правило integer для поля age
-    vm.rules = {
-      login: [{
+      // добавляем асинхронную валидацию userExist
+    vm.scheme = [{
+      fieldName: 'login',
+      rules: [{
         name: "required"
       }, {
         name: "minlength",
-        data: "5"
+        data: 5
       }, {
-        name: "userExist"
+        name: "userExist",
+        async: true
       }]
-      age: [{
-        name: "integer"
+    }, {
+      fieldName: 'age',
+      rules: [{
+        name: 'integer'
       }]
-    };
-  };
-  
+    }];
+
+    validatorService
+      .addValidator('integer', function (age) {
+        var ageRegEx = /^\d+$/
+
+        return ageRegEx.test(age);
+      });
+
   // Асинхронный валидатор должен возвращать promise
-  validatorService
-    .addAsyncValidatorFunc('userExist', function (login) {
-      return User.checkUserLogin(login);
-  });
+      formValidator
+        .addAsyncValidator('userExist', function (login) {
+          return User.checkUserLogin(login);
+      });
+
+    $scope
+     .$applyAsync(function () {
+       formValidator.setFormValidation(vm.userForm, vm.scheme);
+     })
+  })
 ```
 
 В html разметке ничего менять не нужно.
@@ -259,7 +303,7 @@ angular
 
 Модуль может связывать любое количество полей (например для валидации вида проверки пароля)
 
-Для этого в директиве validaton существует параметр __bind-to__ , который принимает как и одну модель, так и массив моделей.
+Для этого в конфигурационном файле правил существует параметр __bindWith__ , который принимает массив моделей.
 
 Валидатор подтверждения пароля:
 
@@ -267,65 +311,49 @@ __JS:__
 ```javascript
  angular
   .module('myApp')
-  .controller('MainCtrl', function () {
+  .controller('MainCtrl', '$scope', 'validatorService', 'User', function ($scope, formValidator, User) {
     var vm = this;
 
     // добавим правила для поля passwordConfirmation
-    vm.rules = {
-      login: [{
-        name: "required"
+     vm.scheme = [{
+        fieldName: 'login',
+        rules: [{
+          name: "required"
+        }, {
+          name: "minlength",
+          data: 5
+        }, {
+          name: "userExist",
+          async: true
+        }]
       }, {
-        name: "minlength",
-        data: "5"
-      }], 
-      passwordConfirmation: [{
-        name: 'confirmPassword'
-      }]
-    };
-  });
+        fieldName: 'passwordConfirmation',
+        rules: [{
+          name: 'passwordConfirmed',
+          bindWith: [
+            'password'
+          ]
+        }]
+      }];
   
   // Добавим пользовательский валидатор
   
-    validatorService
-      .addValidatorFunc('confirmPassword', function (passwordConfirmation, data, originalPassword) {
+    formValidator
+      .addValidator('confirmPassword', function (passwordConfirmation, data, originalPassword) {
         return passwordConfirmation === originalPassword;
       });
-  };
-```
 
-__HTML:__
-```html
-<body ng-app="myApp">
-    <div ng-controller="MainCtrl as vm">
-        <form action="" name="vm.userForm">
-            <input type="text"
-                   name="login"
-                   ng-model="vm.user.login"
-                   validation rules="vm.rules">
-             <error-messages for="vm.userForm.login" messages="vm.messages"></error-messages>
-           <br>
-           <br>
-           <input type="password"
-                  name="password"
-                  ng-model="vm.user.password">
-           <br>
-           <br>
-           <input type="password"
-                  name="confirmPassword"
-                  ng-model="vm.user.confirmPassword"
-                  validation rules="vm.rules"
-                  <!--bind-to для связывания с полем password-->
-                  bind-to="vm.userForm.password">
-    <script src="../node_modules/angular/angular.min.js"></script>
-    <script src="../dist/bundle.js"></script>
-    <script src="./main.js"></script>
-</body>
+      $scope
+       .$applyAsync(function () {
+         formValidator.setFormValidation(vm.userForm, vm.scheme);
+       })
+  };
 ```
 
 __ВАЖНО__ Порядок параметров в калбэке создания пользвательского валидатора. 
 ```javascript
-    validatorService
-      .addValidatorFunc('confirmPassword', function (passwordConfirmation, data, originalPassword) {
+    formValidator
+      .addValidator('confirmPassword', function (passwordConfirmation, data, originalPassword) {
         return passwordConfirmation === originalPassword;
       });
   };
